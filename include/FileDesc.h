@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <string>
 #include <vector>
 #include <unistd.h>
 #include "exceptions.h"

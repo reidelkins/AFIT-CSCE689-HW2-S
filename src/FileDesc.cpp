@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "FileDesc.h"
 #include "strfuncts.h"
