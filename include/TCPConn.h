@@ -2,6 +2,7 @@
 #define TCPCONN_H
 
 #include "FileDesc.h"
+#include "PasswdMgr.h"
 
 const int max_attempts = 2;
 
@@ -35,6 +36,8 @@ public:
    unsigned long getIPAddr() { return _connfd.getIPAddr(); };
    void getIPAddrStr(std::string &buf);
    const char *getUsernameStr() { return _username.c_str(); };
+
+   void serverLog(std::string msg);
 
 private:
 

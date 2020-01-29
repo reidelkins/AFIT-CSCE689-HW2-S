@@ -4,13 +4,19 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
+#include <ctime> 
 #include "TCPConn.h"
 #include "strfuncts.h"
+#include "PasswdMgr.h"
 
 // The filename/path of the password file
 const char pwdfilename[] = "passwd";
+const char logname[] = "server.log";
+PasswdMgr *passwdMgr = new PasswdMgr(pwdfilename);;
 
 TCPConn::TCPConn(){ // LogMgr &server_log):_server_log(server_log) {
+   
 
 }
 
@@ -95,7 +101,6 @@ void TCPConn::handleConnection() {
 
          case s_menu:
             getMenuChoice();
-
             break;
 
          default:
@@ -120,6 +125,26 @@ void TCPConn::handleConnection() {
 
 void TCPConn::getUsername() {
    // Insert your mind-blowing code here
+   std::string username;
+   if(!getUserInput(username)) {
+      
+      //std::cout << "commmand was not entered\n";
+      
+      //should throw an error here to exit function
+
+   } else {
+      if(!passwdMgr->checkUser(username.c_str())){
+         _connfd.writeFD("Invalid username\n");
+         disconnect();
+         //should throw an error here to exit function
+      }
+      else{
+         _username = username;
+         _status = s_passwd;
+         _connfd.writeFD("Password: ");
+      }
+   }
+   
 }
 
 /**********************************************************************************************
@@ -132,7 +157,30 @@ void TCPConn::getUsername() {
 
 void TCPConn::getPasswd() {
    // Insert your astounding code here
+   std::string password;
+   if(!getUserInput(password)) {
+      //std::cout << "commmand was not entered\n";
+      //should throw an error here to exit function
+
+   } else {
+      if( _pwd_attempts < 2) {
+         if(!passwdMgr->checkPasswd(_username.c_str(), password.c_str())){
+            if (_pwd_attempts == 0 ){
+               _connfd.writeFD("Wrong password. Please try again\nPassword: ");
+               _pwd_attempts++;
+            } else {
+               _connfd.writeFD("Wrong password. Max amount of attempts used, disconnecting now\n");
+               disconnect();
+            }
+         } else {
+            _connfd.writeFD("Password successfully entered\n");
+            sendMenu();
+            _status = s_menu;
+         }
+      }
+   }
 }
+
 
 /**********************************************************************************************
  * changePassword - called from handleConnection when status is s_changepwd or s_confirmpwd--
@@ -145,6 +193,26 @@ void TCPConn::getPasswd() {
 
 void TCPConn::changePassword() {
    // Insert your amazing code here
+   std::string password;
+   if(!getUserInput(password)) {
+      std::cout << "Commmand was not entered\n";
+      //should throw an error here to exit function
+   }
+   if(_status == s_changepwd) {
+      _newpwd = password;
+      _status = s_confirmpwd; //not sure if this is necessary (maybe done somewhere else)
+      _connfd.writeFD("Enter New Password Again: ");
+
+   } else {
+      if(_newpwd.compare(password) == 0) {
+         if(!passwdMgr->changePasswd(_username.c_str(), password.c_str())) {
+            _connfd.writeFD("Change password failed\n");
+            //exit failure
+         }
+         _connfd.writeFD("Password successfully changed\n");
+         //else change status to something else?, password successfully changed message
+      }
+   }
 }
 
 
@@ -201,30 +269,25 @@ void TCPConn::getMenuChoice() {
    // Don't be lazy and use my outputs--make your own!
    std::string msg;
    if (cmd.compare("hello") == 0) {
-      _connfd.writeFD("Hello back!\n");
+      _connfd.writeFD("Welcome to the server!\n");
    } else if (cmd.compare("menu") == 0) {
       sendMenu();
    } else if (cmd.compare("exit") == 0) {
-      _connfd.writeFD("Disconnecting...goodbye!\n");
+      _connfd.writeFD("'Insert AOL goodbye tone here'\n");
       disconnect();
    } else if (cmd.compare("passwd") == 0) {
       _connfd.writeFD("New Password: ");
       _status = s_changepwd;
    } else if (cmd.compare("1") == 0) {
-      msg += "You want a prediction about the weather? You're asking the wrong Phil.\n";
-      msg += "I'm going to give you a prediction about this winter. It's going to be\n";
-      msg += "cold, it's going to be dark and it's going to last you for the rest of\n";
-      msg += "your lives!\n";
-      _connfd.writeFD(msg);
+      _connfd.writeFD("Don't cry because it's over. Smile because it happened.\n");
    } else if (cmd.compare("2") == 0) {
-      _connfd.writeFD("42\n");
+      _connfd.writeFD("If the track is tough and the hill is rough, THINKING you can just ain't enough.\n");
    } else if (cmd.compare("3") == 0) {
-      _connfd.writeFD("That seems like a terrible idea.\n");
+      _connfd.writeFD("Everything negative - pressure, challenges - is all an opportunity for me to rise.\n");
    } else if (cmd.compare("4") == 0) {
-
+      _connfd.writeFD("You hear about how many fourth quarter comebacks that a guy has and I think it means a guy screwed up in the first three quarters.\n");
    } else if (cmd.compare("5") == 0) {
-      _connfd.writeFD("I'm singing, I'm in a computer and I'm siiiingiiiing! I'm in a\n");
-      _connfd.writeFD("computer and I'm siiiiiiinnnggiiinnggg!\n");
+      _connfd.writeFD("Talent wins games, but teamwork and intelligence wins championships.\n");
    } else {
       msg = "Unrecognized command: ";
       msg += cmd;
@@ -243,17 +306,16 @@ void TCPConn::sendMenu() {
    std::string menustr;
 
    // Make this your own!
-   menustr += "Available choices: \n";
-   menustr += "  1). Provide weather report.\n";
-   menustr += "  2). Learn the secret of the universe.\n";
-   menustr += "  3). Play global thermonuclear war\n";
-   menustr += "  4). Do nothing.\n";
-   menustr += "  5). Sing. Sing a song. Make it simple, to last the whole day long.\n\n";
-   menustr += "Other commands: \n";
-   menustr += "  Hello - self-explanatory\n";
-   menustr += "  Passwd - change your password\n";
-   menustr += "  Menu - display this menu\n";
-   menustr += "  Exit - disconnect.\n\n";
+   menustr += "Command Options: \n";
+   menustr += "  '1' - Dr. Suess\n";
+   menustr += "  '2' - Shel Silverstein\n";
+   menustr += "  '3' - Kobe Bryant\n";
+   menustr += "  '4' - Peyton Manning\n";
+   menustr += "  '5' -  MJ\n";
+   menustr += "  'Hello' - Welcome Message\n";
+   menustr += "  'Passwd' - change your password\n";
+   menustr += "  'Menu' - display this menu\n";
+   menustr += "  'Exit' - disconnect.\n\n";
 
    _connfd.writeFD(menustr);
 }
@@ -284,5 +346,22 @@ bool TCPConn::isConnected() {
  **********************************************************************************************/
 void TCPConn::getIPAddrStr(std::string &buf) {
    return _connfd.getIPAddrStr(buf);
+}
+
+void TCPConn::serverLog(std::string msg) {
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+
+   FileFD log = FileFD(logname);
+   log.openFile(FileFD::appendfd);
+   log.writeFD(asctime(timeinfo));
+   std::vector<char> msgV(msg.begin(), msg.end());
+   log.writeBytes(msgV);
+   log.writeByte('\n');
+   log.closeFD();
+
 }
 

@@ -3,6 +3,7 @@
 
 #include <list>
 #include <memory>
+#include <String>
 #include "Server.h"
 #include "FileDesc.h"
 #include "TCPConn.h"
@@ -23,6 +24,13 @@ private:
  
    // List of TCPConn objects to manage connections
    std::list<std::unique_ptr<TCPConn>> _connlist;
+
+   //Approved IP Address List
+   std::list<std::string> _whiteList;
+
+   
+   
+
 
 };
 

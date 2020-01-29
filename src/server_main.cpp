@@ -22,11 +22,10 @@ void displayHelp(const char *execname) {
 }
 
 // global default values
-const unsigned short default_port = 9999;
+const unsigned short default_port = 9998;
 const char default_IP[] = "127.0.0.1";
 
 int main(int argc, char *argv[]) {
-
 
    unsigned short port = default_port;
    std::string ip_addr(default_IP);

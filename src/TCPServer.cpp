@@ -8,11 +8,34 @@
 #include <strings.h>
 #include <vector>
 #include <iostream>
+#include <string>
+#include <fstream>
 #include <memory>
 #include <sstream>
+#include "FileDesc.h"
 #include "TCPServer.h"
 
+const char whitelistfilename[] = "whitelist";
+TCPConn *new_conn = new TCPConn();
+
 TCPServer::TCPServer(){ // :_server_log("server.log", 0) {
+   
+   new_conn->serverLog("Started server\n");
+   FileFD _IPFile = FileFD(whitelistfilename);
+   //reads in IPs from text file and puts them into string list
+   _IPFile.openFile(FileFD::readfd);
+   std::string line;
+   while(_IPFile.readStr(line) > 0) {
+      _whiteList.push_back(line);
+
+   }
+   _IPFile.closeFD();
+   
+   //this can be deleted
+   for(auto x = _whiteList.begin(); x != _whiteList.end(); x++) {
+      std::cout << *x << "\n";
+   }
+
 }
 
 
@@ -66,7 +89,8 @@ void TCPServer::listenSvr() {
       socklen_t len = sizeof(cliaddr);
 
       if (_sockfd.hasData()) {
-         TCPConn *new_conn = new TCPConn();
+         //TCPConn *new_conn = new TCPConn();
+
          if (!new_conn->accept(_sockfd)) {
             // _server_log.strerrLog("Data received on socket but failed to accept.");
             continue;
@@ -78,6 +102,16 @@ void TCPServer::listenSvr() {
          // Get their IP Address string to use in logging
          std::string ipaddr_str;
          new_conn->getIPAddrStr(ipaddr_str);
+
+         //check if IP Addr from new connection is in the approved list, need to check formatting of 
+         if(std::find(_whiteList.begin(), _whiteList.end(), ipaddr_str) == _whiteList.end()) {
+            //disconnect this connection
+            std::cout << "New connection not from approved list of IP Addresses, disconnecting now\n";
+            //how to get server to manually disconnect client
+            _connlist.remove(_connlist.back());
+            std::cout << "Connection disconnected.\n";
+         }
+            
 
 
          new_conn->sendText("Welcome to the CSCE 689 Server!\n");
@@ -110,8 +144,6 @@ void TCPServer::listenSvr() {
       // So we're not chewing up CPU cycles unnecessarily
       nanosleep(&sleeptime, NULL);
    } 
-
-
    
 }
 
@@ -126,5 +158,6 @@ void TCPServer::shutdown() {
 
    _sockfd.closeFD();
 }
+
 
 

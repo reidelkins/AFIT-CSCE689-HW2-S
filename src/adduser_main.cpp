@@ -25,26 +25,29 @@ void displayHelp(const char *execname) {
 
 
 int main(int argc, char *argv[]) {
-
+   int r = 0;
+   
    // Check the command line input
    if (argc < 2) {
       displayHelp(argv[0]);
       exit(0);
    }
-
+   
    // Read in the username to add to the password file
    std::string username(argv[1]);
-
+   
    // Check if the user already exists
    std::vector<uint8_t> hash, salt;
    PasswdMgr pwm("passwd");
-   
+   std::cout << r << "\n";
+   r++;
    if (pwm.checkUser(username.c_str()))
    {
       cerr << "That user already has an account.\n";
       exit(-1); 
    }
-
+   std::cout << r << "\n";
+   r++;
    TermFD stdinFD;
 
    stdinFD.setEchoFD(false);
