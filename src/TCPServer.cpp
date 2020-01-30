@@ -103,6 +103,7 @@ void TCPServer::listenSvr() {
          std::string ipaddr_str;
          new_conn->getIPAddrStr(ipaddr_str);
 
+         std::string msg;
          //check if IP Addr from new connection is in the approved list, need to check formatting of 
          if(std::find(_whiteList.begin(), _whiteList.end(), ipaddr_str) == _whiteList.end()) {
             //disconnect this connection
@@ -110,9 +111,14 @@ void TCPServer::listenSvr() {
             //how to get server to manually disconnect client
             _connlist.remove(_connlist.back());
             std::cout << "Connection disconnected.\n";
-         }
+            msg = "Connection attempted from non-approved IP. IP : ";
             
-
+            new_conn->serverLog(msg);
+         }
+         msg = "Connection established from IP ";
+         msg += ipaddr_str;
+         msg += "\n";
+         new_conn->serverLog(msg);
 
          new_conn->sendText("Welcome to the CSCE 689 Server!\n");
 

@@ -77,13 +77,13 @@ public:
       int results;
       if ((results = read(_fd, bytebuf, bufsize)) < 0)
       {
-         delete bytebuf;
+         delete[] bytebuf;
          return -1;
       }
 
       if (results < bufsize) {
          if (results % datasize != 0) {
-            delete bytebuf;
+            delete[] bytebuf;
             return -2;
          }
       }
@@ -94,7 +94,7 @@ public:
          buf.push_back((T) bytebuf[i*datasize]);
       }
 
-      delete bytebuf;
+      delete[] bytebuf;
       return buf.size();
    }
 
@@ -121,7 +121,7 @@ public:
 
       int results;
       results = write(_fd, bytebuf, bufsize);
-      delete bytebuf;
+      delete[] bytebuf;
       return results;
 
    }

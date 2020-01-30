@@ -133,16 +133,25 @@ void TCPConn::getUsername() {
       //should throw an error here to exit function
 
    } else {
+      std::string ipaddr_str, msg;
+      getIPAddrStr(ipaddr_str);
       if(!passwdMgr->checkUser(username.c_str())){
          _connfd.writeFD("Invalid username\n");
+         msg = "Username entered was not recognized. Username: ";
          disconnect();
          //should throw an error here to exit function
       }
       else{
          _username = username;
          _status = s_passwd;
+         msg = "Valid username entered. Username: ";
          _connfd.writeFD("Password: ");
       }
+      msg += username;
+      msg += " IP: ";
+      msg += ipaddr_str;
+      msg += "\n";
+      serverLog(msg);
    }
    
 }
@@ -157,11 +166,11 @@ void TCPConn::getUsername() {
 
 void TCPConn::getPasswd() {
    // Insert your astounding code here
-   std::string password;
+   std::string password, ipaddr_str, msg;
    if(!getUserInput(password)) {
       //std::cout << "commmand was not entered\n";
       //should throw an error here to exit function
-
+   
    } else {
       if( _pwd_attempts < 2) {
          if(!passwdMgr->checkPasswd(_username.c_str(), password.c_str())){
@@ -170,12 +179,26 @@ void TCPConn::getPasswd() {
                _pwd_attempts++;
             } else {
                _connfd.writeFD("Wrong password. Max amount of attempts used, disconnecting now\n");
+               getIPAddrStr(ipaddr_str);
+               msg = "User entered wrong password two times. Username: ";
+               msg += _username;
+               msg += " IP: ";
+               msg += ipaddr_str;
+               msg += "\n";
+               serverLog(msg);
                disconnect();
             }
          } else {
             _connfd.writeFD("Password successfully entered\n");
-            sendMenu();
+            getIPAddrStr(ipaddr_str);
+            msg = "Successful login. Username: ";
+            msg += _username;
+            msg += " IP: ";
+            msg += ipaddr_str;
+            msg += "\n";
+            serverLog(msg);
             _status = s_menu;
+            sendMenu();
          }
       }
    }
@@ -195,22 +218,24 @@ void TCPConn::changePassword() {
    // Insert your amazing code here
    std::string password;
    if(!getUserInput(password)) {
-      std::cout << "Commmand was not entered\n";
+      //std::cout << "Commmand was not entered\n";
       //should throw an error here to exit function
-   }
-   if(_status == s_changepwd) {
-      _newpwd = password;
-      _status = s_confirmpwd; //not sure if this is necessary (maybe done somewhere else)
-      _connfd.writeFD("Enter New Password Again: ");
-
    } else {
-      if(_newpwd.compare(password) == 0) {
-         if(!passwdMgr->changePasswd(_username.c_str(), password.c_str())) {
-            _connfd.writeFD("Change password failed\n");
-            //exit failure
+      if(_status == s_changepwd) {
+         _newpwd = password;
+         _status = s_confirmpwd; //not sure if this is necessary (maybe done somewhere else)
+         _connfd.writeFD("Enter New Password Again: ");
+
+      } else {
+         if(_newpwd.compare(password) == 0) {
+            if(!passwdMgr->changePasswd(_username.c_str(), password.c_str())) {
+               _connfd.writeFD("Change password failed\n");
+               //exit failure
+            }
+            _connfd.writeFD("Password successfully changed\n");
+            _status = s_menu;
+            //else change status to something else?, password successfully changed message
          }
-         _connfd.writeFD("Password successfully changed\n");
-         //else change status to something else?, password successfully changed message
       }
    }
 }
@@ -327,6 +352,14 @@ void TCPConn::sendMenu() {
  *    Throws: runtime_error for unrecoverable issues
  **********************************************************************************************/
 void TCPConn::disconnect() {
+   std::string ipaddr_str, msg;
+   getIPAddrStr(ipaddr_str);
+   msg = "Connection disconnected. Username: ";
+   msg += _username;
+   msg += " IP: ";
+   msg += ipaddr_str;
+   msg += "\n";
+   serverLog(msg);
    _connfd.closeFD();
 }
 

@@ -4,6 +4,9 @@
 #include <list>
 #include <memory>
 #include <String>
+#include <string>
+//NEED TO UNCOMMENT THIS FOR LINUX
+//#include <bits/stdc++.h>
 #include "Server.h"
 #include "FileDesc.h"
 #include "TCPConn.h"

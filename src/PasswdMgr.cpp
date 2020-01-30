@@ -30,7 +30,6 @@ PasswdMgr::~PasswdMgr() {
  *******************************************************************************************/
 
 bool PasswdMgr::checkUser(const char *name) {
-   std::cout << "in checkUser\n";
    std::vector<uint8_t> hash, salt;
 
    bool result = findUser(name, hash, salt);
@@ -64,18 +63,9 @@ bool PasswdMgr::checkPasswd(const char *name, const char *passwd) {
 
    hashArgon2(passhash, salt, passwd, &salt);
 
-   const char tmpfilename[] = "tmp";
-   FileFD tmp = FileFD(tmpfilename);
-   tmp.openFile(FileFD::writefd);
-   tmp.writeBytes(passhash);
-   tmp.closeFD();
 
-   tmp.openFile(FileFD::readfd);
-   tmp.readBytes(passhash, hashlen);
-   tmp.closeFD();
-   //do not need to write back because the next write will write over this line
    
-
+   /*
    for (auto x = userhash.begin(); x != userhash.end(); x++) {
       std:: cout << (*x);
    }
@@ -84,11 +74,11 @@ bool PasswdMgr::checkPasswd(const char *name, const char *passwd) {
       std:: cout << (*x);
    }
    std::cout << "\n" << passhash.size() << "\n";
-
+   */
    if (userhash == passhash)
       return true;
 
-   return true;
+   return false;
 }
 
 /*******************************************************************************************
@@ -107,12 +97,16 @@ bool PasswdMgr::checkPasswd(const char *name, const char *passwd) {
 bool PasswdMgr::changePasswd(const char *name, const char *passwd) {
    //DOES NOT HAVE ANY ERROR CHECKING
    FileFD pwfile(_pwd_file.c_str());
-   if(!pwfile.openFile(FileFD::readfd)) {
+   if(pwfile.openFile(FileFD::readfd)) {
       std::list<std::string> pswds;
       std::string line, last = "";
       std::vector<uint8_t> hash, salt, outSalt;
-      std::string hashStr; //hashStr = hashArgon2(hash, salt, passwd, outSalt);
-      while(!pwfile.readStr(line) != -1) {
+      hashArgon2(hash, salt, passwd, NULL);
+      std::string hashStr = "";
+      for(auto val = hash.begin(); val != hash.end(); val++) {
+         hashStr += (*val);
+      }
+      while(pwfile.readStr(line) > 0) {
          if(last.compare(name) == 0) {
             pswds.push_back(hashStr);
          } else {
@@ -121,13 +115,18 @@ bool PasswdMgr::changePasswd(const char *name, const char *passwd) {
          }
       }
       pwfile.closeFD();
-      if(!pwfile.openFile(FileFD::writefd)) {
-         //does doing a writestr in a file that is opened as a writefd overwrite the current line
+      FileFD pwfile(_pwd_file.c_str());
+      if(pwfile.openFile(FileFD::writefd)) {
          for(auto lne = pswds.begin(); lne != pswds.end(); lne++) {
             pwfile.writeFD(*lne);
+            pwfile.writeByte('\n');
          }
          pwfile.closeFD();
+      } else {
+         throw pwfile_error("Could not open passwd file for writing"); 
       }
+   } else {
+      throw pwfile_error("Could not open passwd file for reading");
    }
    return true;
 }
@@ -163,8 +162,8 @@ bool PasswdMgr::readUser(FileFD &pwfile, std::string &name, std::vector<uint8_t>
       //throw error
       return false;
    }
-   std::string newL;
-   if(pwfile.readStr(newL) <= 0) {
+   unsigned char newL;
+   if(pwfile.readByte(newL) <= 0) {
       //throw error
       return false;
    }
@@ -265,6 +264,7 @@ void PasswdMgr::hashArgon2(std::vector<uint8_t> &ret_hash, std::vector<uint8_t> 
          throw std::runtime_error("salt is not proper size\n");
 
       } else {
+         //makeSalt(*in_salt);
          for(int i = 0; i < saltlen; i++) {
             salt[i] = (*in_salt)[i];
          }
@@ -312,8 +312,7 @@ void PasswdMgr::addUser(const char *name, const char *passwd) {
       std::cout << "User already exists\n";
       return;
    } else {
-      makeSalt(salt);
-      hashArgon2(hash, salt, passwd, &salt);
+      hashArgon2(hash, salt, passwd, NULL);
 
       FileFD pwfile(_pwd_file.c_str());
       std::string nameToAdd = name;
